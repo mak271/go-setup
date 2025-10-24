@@ -1,4 +1,4 @@
-package concurrency
+package example
 
 import (
 	"flag"
@@ -9,7 +9,7 @@ import (
 )
 
 func Concurrency() {
-	path := flag.String("file", "concurrency/url.txt", "path to URL file")
+	path := flag.String("file", "example/url.txt", "path to URL file")
 	flag.Parse()
 	file, err := os.ReadFile(*path)
 	if err != nil {
