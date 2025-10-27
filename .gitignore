@@ -1,2 +1,4 @@
 .DS_Store
 go-adv-demo/.nvimlog
+/go-adv-demo/postgres-data
+go-adv-demo/.env
