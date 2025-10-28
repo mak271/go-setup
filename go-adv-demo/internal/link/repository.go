@@ -43,6 +43,7 @@ func (repo *LinkRepository) Update(link *Link) (*Link, error) {
 
 func (repo *LinkRepository) Delete(id uint) error {
 	result := repo.Database.DB.Delete(&Link{}, id)
+	// if result.RowsAffected == 0
 	if result.Error != nil {
 		return result.Error
 	}
