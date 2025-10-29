@@ -15,11 +15,9 @@ func main() {
 	conf := configs.LoadConfig()
 	database := db.NewDb(conf)
 	router := http.NewServeMux()
-
 	//Repositories
 	linkRepo := link.NewLinkRepository(database)
 	userRepo := user.NewUserRepository(database)
-
 	//Services
 	authService := auth.NewAuthService(userRepo)
 
@@ -30,6 +28,7 @@ func main() {
 	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepo,
+		Config:         conf,
 	})
 
 	//Middlewares
