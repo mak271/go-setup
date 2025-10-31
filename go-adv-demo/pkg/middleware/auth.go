@@ -34,7 +34,6 @@ func IsAuthed(next http.Handler, config *configs.Config) http.Handler {
 		}
 		ctx := context.WithValue(r.Context(), ContextEmailKey, data.Email)
 		request := r.WithContext(ctx)
-
 		next.ServeHTTP(w, request)
 	})
 }

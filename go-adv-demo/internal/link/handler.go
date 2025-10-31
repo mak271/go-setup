@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"go/adv-demo/configs"
+	"go/adv-demo/internal/stat"
 	"go/adv-demo/pkg/middleware"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/res"
@@ -14,21 +15,25 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
+	StatRepository *stat.StatRepository
 	Config         *configs.Config
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	StatRepository *stat.StatRepository
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		StatRepository: deps.StatRepository,
 	}
 	router.HandleFunc("POST /link", handler.Create())
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /{hash}", handler.GoTo())
+	router.Handle("GET /link", middleware.IsAuthed(handler.GetAll(), deps.Config))
 }
 
 func (handler *LinkHandler) Create() http.HandlerFunc {
@@ -74,7 +79,6 @@ func (handler *LinkHandler) Update() http.HandlerFunc {
 		_, err = handler.LinkRepository.GetById(uint(id))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
-
 			return
 		}
 
@@ -124,6 +128,25 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		handler.StatRepository.AddClick(link.ID)
 		http.Redirect(w, r, link.Url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (handler *LinkHandler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, "Invalod limit", http.StatusBadRequest)
+			return
+		}
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "Invalod limit", http.StatusBadRequest)
+			return
+		}
+		links := handler.LinkRepository.GetAll(limit, offset)
+		linksCount := handler.LinkRepository.Count()
+		res.Json(w, GetAllLinksResponse{links, linksCount}, http.StatusOK)
 	}
 }
