@@ -8,6 +8,7 @@ import (
 	"go/adv-demo/internal/stat"
 	"go/adv-demo/internal/user"
 	"go/adv-demo/pkg/db"
+	"go/adv-demo/pkg/event"
 	"go/adv-demo/pkg/middleware"
 	"net/http"
 )
@@ -16,12 +17,19 @@ func main() {
 	conf := configs.LoadConfig()
 	database := db.NewDb(conf)
 	router := http.NewServeMux()
+	eventBus := event.NewEventBus()
+
 	//Repositories
 	linkRepo := link.NewLinkRepository(database)
 	userRepo := user.NewUserRepository(database)
 	statRepo := stat.NewStatRepository(database)
+
 	//Services
 	authService := auth.NewAuthService(userRepo)
+	statService := stat.NewStatService(&stat.StatServiceDeps{
+		EventBus:       eventBus,
+		StatRepository: statRepo,
+	})
 
 	// Handler
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
@@ -30,6 +38,10 @@ func main() {
 	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepo,
+		Config:         conf,
+		EventBus:       eventBus,
+	})
+	stat.NewStatHandler(router, stat.StatHandlerDeps{
 		StatRepository: statRepo,
 		Config:         conf,
 	})
@@ -44,6 +56,8 @@ func main() {
 		Addr:    ":8081",
 		Handler: stack(router),
 	}
+
+	go statService.AddClick()
 
 	fmt.Println("Server is listening on port 8081")
 	server.ListenAndServe()

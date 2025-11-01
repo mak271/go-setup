@@ -3,7 +3,7 @@ package link
 import (
 	"fmt"
 	"go/adv-demo/configs"
-	"go/adv-demo/internal/stat"
+	"go/adv-demo/pkg/event"
 	"go/adv-demo/pkg/middleware"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/res"
@@ -15,19 +15,19 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
-	StatRepository *stat.StatRepository
 	Config         *configs.Config
+	EventBus       *event.EventBus
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
-	StatRepository *stat.StatRepository
+	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
-		StatRepository: deps.StatRepository,
+		EventBus:       deps.EventBus,
 	}
 	router.HandleFunc("POST /link", handler.Create())
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
@@ -128,7 +128,10 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		handler.StatRepository.AddClick(link.ID)
+		go handler.EventBus.Publish(event.Event{
+			Type: event.EventLinkVisited,
+			Data: link.ID,
+		})
 		http.Redirect(w, r, link.Url, http.StatusTemporaryRedirect)
 	}
 }
@@ -137,12 +140,12 @@ func (handler *LinkHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
 		if err != nil {
-			http.Error(w, "Invalod limit", http.StatusBadRequest)
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
 			return
 		}
 		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
 		if err != nil {
-			http.Error(w, "Invalod limit", http.StatusBadRequest)
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
 			return
 		}
 		links := handler.LinkRepository.GetAll(limit, offset)
