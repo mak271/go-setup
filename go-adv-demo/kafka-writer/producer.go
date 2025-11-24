@@ -8,18 +8,29 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{"localhost:9092"},
-		Topic:    "my-topic",
+	writer := kafka.Writer{
+		Addr:         kafka.TCP("localhost:9092"),
+		Topic:        "my-topic",
+		RequiredAcks: kafka.RequireAll,
+		//Async:        true,
 		Balancer: &kafka.Hash{},
-	})
+	}
 	defer writer.Close()
 
-	err := writer.WriteMessages(ctx, kafka.Message{
-		Key:   []byte("user-123"),
-		Value: []byte("Hello, Kafka!"),
-	})
+	err := writer.WriteMessages(context.Background(),
+		kafka.Message{
+			Key:   []byte("Key-A"),
+			Value: []byte("Hello World!"),
+		},
+		kafka.Message{
+			Key:   []byte("Key-B"),
+			Value: []byte("One!"),
+		},
+		kafka.Message{
+			Key:   []byte("Key-C"),
+			Value: []byte("Two!"),
+		},
+	)
 	if err != nil {
 		log.Fatal("Ошибка при отправке:", err)
 	}
