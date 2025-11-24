@@ -53,12 +53,12 @@ func main() {
 	)
 
 	server := http.Server{
-		Addr:    ":8081",
+		Addr:    ":9092",
 		Handler: stack(router),
 	}
 
 	go statService.AddClick()
 
-	fmt.Println("Server is listening on port 8081")
+	fmt.Println("Server is listening on port 9092")
 	server.ListenAndServe()
 }
